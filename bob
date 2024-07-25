@@ -1,0 +1,104 @@
+#!/bin/sh
+set -e
+
+PWD="$(pwd)"
+BIN="$PWD/../crosscompiler/opt/cross/bin"
+DEFAULT_HOST=i686-elf
+export PATH="$BIN:$PATH"
+
+## config #####################################################################
+SYSTEM_HEADER_PROJECTS="libc kernel"
+PROJECTS="libc kernel"
+
+export MAKE="${MAKE:-make}"
+export HOST="${HOST:-$DEFAULT_HOST}"
+
+export AR="${HOST}-ar"
+export AS="${HOST}-as"
+export CC="${HOST}-gcc"
+
+export PREFIX=/usr
+export EXEC_PREFIX=$PREFIX
+export BOOTDIR=/boot
+export LIBDIR=$EXEC_PREFIX/lib
+export INCLUDEDIR=$PREFIX/include
+
+export CFLAGS='-O2 -g'
+export CPPFLAGS=''
+
+# Configure the cross-compiler to use the desired system root.
+export SYSROOT="$PWD/sysroot"
+export CC="$CC --sysroot=$SYSROOT"
+
+# Work around that the -elf gcc targets doesn't have a system include directory
+# because it was configured with --without-headers rather than --with-sysroot.
+if echo "$HOST" | grep -Eq -- '-elf($|-)'; then
+    export CC="$CC -isystem=$INCLUDEDIR"
+fi
+
+# target-triplet-to-arch
+if echo "$HOST" | grep -Eq 'i[[:digit:]]86-'; then
+    HOSTARCH="i386"
+else
+    HOSTARCH="$(echo "$HOST" | grep -Eo '^[[:alnum:]_]*')"
+fi
+###############################################################################
+bob_clean() {
+    for PROJECT in $PROJECTS; do
+      (cd "$PROJECT" && "$MAKE" clean)
+    done
+    
+    rm -vrf "$SYSROOT"
+    rm -vrf isodir
+    rm -vf  deer.iso
+}
+bob_headers() {
+    mkdir -vp "$SYSROOT"
+    
+    for PROJECT in $SYSTEM_HEADER_PROJECTS; do
+      (cd "$PROJECT" && DESTDIR="$SYSROOT" "$MAKE" install-headers)
+    done
+}
+bob_build() {
+    bob_headers
+
+    for PROJECT in $PROJECTS; do
+        mkdir -vp build/"$PROJECT"
+        (cd "$PROJECT" && DESTDIR="$SYSROOT" "$MAKE" install)
+    done
+}
+bob_iso() {
+    bob_build
+
+    mkdir -vp isodir/boot/grub
+
+    cp -v sysroot/boot/deer.kernel isodir/boot/deer.kernel
+    cat > isodir/boot/grub/grub.cfg << EOF
+menuentry "deer" {
+    multiboot /boot/deer.kernel
+}
+EOF
+    grub-mkrescue -o deer.iso isodir
+}
+bob_launch() {
+    qemu-system-"$HOSTARCH" -cdrom deer.iso
+}
+###############################################################################
+
+echo "bob is building (  ._.)"
+
+# clean the source tree
+[ "$1" = "clean" ] && \
+    echo "bob: [clean]" && \
+    bob_clean
+
+# install all the system headers into the system root - './headers.sh'
+# build a bootable cdrom image - './iso.sh'
+echo "bob: [build]"
+bob_iso
+# launch
+echo "bob: [launch]";
+bob_launch
+
+echo "done (⌐■_■)"
+
