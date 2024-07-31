@@ -3,20 +3,28 @@ set -e
 
 PWD="$(pwd)"
 BIN="$PWD/../crosscompiler/opt/cross/bin"
-DEFAULT_HOST=i686-elf
 export PATH="$BIN:$PATH"
 
 ## config #####################################################################
+VERSION="0.0.0.0v"
+DEFAULT_HOST=i686-elf
+export BOOTLOADER="foot"
+
 SYSTEM_HEADER_PROJECTS="libc kernel"
-PROJECTS="libc kernel"
+PROJECTS="bootloader libc kernel"
 
 export MAKE="${MAKE:-make}"
 export HOST="${HOST:-$DEFAULT_HOST}"
 
-export AR="${HOST}-ar"
-export AS="${HOST}-as"
+# export AR="${HOST}-ar"
+# export AS="${HOST}-as"
+export AS=nasm
 export CC="${HOST}-gcc"
+export LD="${HOST}-ld"
 
+export BUILDDIR="$PWD/build"
+export SYSROOT="$PWD/sysroot"
+export DESTDIR="$SYSROOT" 
 export PREFIX=/usr
 export EXEC_PREFIX=$PREFIX
 export BOOTDIR=/boot
@@ -27,7 +35,6 @@ export CFLAGS='-O2 -g'
 export CPPFLAGS=''
 
 # Configure the cross-compiler to use the desired system root.
-export SYSROOT="$PWD/sysroot"
 export CC="$CC --sysroot=$SYSROOT"
 
 # Work around that the -elf gcc targets doesn't have a system include directory
@@ -42,63 +49,110 @@ if echo "$HOST" | grep -Eq 'i[[:digit:]]86-'; then
 else
     HOSTARCH="$(echo "$HOST" | grep -Eo '^[[:alnum:]_]*')"
 fi
+
 ###############################################################################
+bob_say() {
+    printf "\e[0;1;92m%s\e[0m\n" "$*"
+}
+bob_info() {
+    bob_say "[bob:info]"
+    cat << EOF
+system:
+    version:    ${VERSION}
+    arch:       ${HOSTARCH}
+    bootloader: ${BOOTLOADER}
+tools:
+    assembler:  ${AS}
+    compiler:   ${CC}
+    linker:     ${LD}
+dirs:
+    build:      ${BUILDDIR}
+    sysroot:    ${SYSROOT}
+comiling:
+    projects:   ${PROJECTS}
+    headers:    ${SYSTEM_HEADER_PROJECTS}
+EOF
+}
 bob_clean() {
-    for PROJECT in $PROJECTS; do
-      (cd "$PROJECT" && "$MAKE" clean)
-    done
-    
-    rm -vrf "$SYSROOT"
-    rm -vrf isodir
-    rm -vf  deer.iso
+   bob_say "[bob:clean]"
+   for PROJECT in $PROJECTS; do
+     (cd "$PROJECT" && "$MAKE" clean)
+   done
+
+   rm -vrf "$SYSROOT"
+   rm -vrf isodir
+   rm -vf  deer.kernel
 }
 bob_headers() {
+   bob_say "[bob:headers]"
     mkdir -vp "$SYSROOT"
-    
+
     for PROJECT in $SYSTEM_HEADER_PROJECTS; do
-      (cd "$PROJECT" && DESTDIR="$SYSROOT" "$MAKE" install-headers)
+        bob_say "[bob:headers:$PROJECT]"
+        (cd "$PROJECT" && "$MAKE" install-headers)
     done
 }
 bob_build() {
-    bob_headers
+    bob_say "[bob:build]"
+    bob_say "[bob:build:boot]"
+    (cd bootloader && "$MAKE" install-"$BOOTLOADER")
 
-    for PROJECT in $PROJECTS; do
-        mkdir -vp build/"$PROJECT"
-        (cd "$PROJECT" && DESTDIR="$SYSROOT" "$MAKE" install)
-    done
+    bob_say "[bob:build:libc]"
+    (cd libc && "$MAKE" install)
+
+    bob_say "[bob:build:kernel]"
+    (cd kernel && "$MAKE" install-"$BOOTLOADER")
 }
 bob_iso() {
-    bob_build
+    bob_say "[bob:build:iso]";
+    if [ "$BOOTLOADER" = "foot" ]; then
+        sectors=24
 
-    mkdir -vp isodir/boot/grub
+        cat "$BUILDDIR/bootloader/foot/foot_boot_loader.bin" \
+            "$BUILDDIR/kernel/deer.kernel.foot" > deer.kernel
+        dd if=/dev/zero bs=1 count=$((512*sectors-$(stat -c%s "deer.kernel"))) \
+            >> deer.kernel
+        mkdir -p "$SYSROOT/boot"
+        cp "deer.kernel" "$SYSROOT/boot/deer.kernel"
+    elif [ "$BOOTLOADER" = "grub" ]; then
+        if ! grub-file --is-x86-multiboot "$BUILDDIR"/kernel/deer.kernel.grub
+        then
+            bob_say "[bob:iso:error: deer.kernel is not multiboot-able]"
+            exit 1
+        fi
 
-    cp -v sysroot/boot/deer.kernel isodir/boot/deer.kernel
-    cat > isodir/boot/grub/grub.cfg << EOF
+        mkdir -vp isodir/boot/grub
+
+        cp -v sysroot/boot/deer.kernel isodir/boot/deer.kernel
+        cat > isodir/boot/grub/grub.cfg << EOF
 menuentry "deer" {
     multiboot /boot/deer.kernel
 }
 EOF
-    grub-mkrescue -o deer.iso isodir
+        grub-mkrescue -o deer.kernel isodir
+    fi
 }
 bob_launch() {
-    qemu-system-"$HOSTARCH" -cdrom deer.iso
+    bob_say "[bob:launch]";
+    qemu-system-"$HOSTARCH" -drive format=raw,file=deer.kernel
 }
-###############################################################################
 
-echo "bob is building (  ._.)"
+###############################################################################
+bob_say "bob is building (  ._.)"
+bob_info
 
 # clean the source tree
 [ "$1" = "clean" ] && \
-    echo "bob: [clean]" && \
-    bob_clean
+   bob_clean
 
-# install all the system headers into the system root - './headers.sh'
-# build a bootable cdrom image - './iso.sh'
-echo "bob: [build]"
-bob_iso
-# launch
-echo "bob: [launch]";
+# install all the system headers into the system root
+bob_headers
+# build the project
+bob_build
+# build a bootable cdrom image - bob_iso
+time bob_iso
+
 bob_launch
 
-echo "done (⌐■_■)"
+bob_say "done (⌐■_■)"
 

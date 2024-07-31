@@ -1,4 +1,4 @@
-*.iso
+deer.kernel
 isodir
 sysroot
 build
