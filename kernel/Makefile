@@ -7,6 +7,11 @@ CPPFLAGS?=
 LDFLAGS?=
 LIBS?=
 
+# add libc ass a lib
+# LIBS:= $(LIBS) $(wildcard $(BUILDDIR)/libc/*.0)
+LIBC:= $(BUILDDIR)/libc/libk.a
+LIBS:= $(LIBS) -L$(BUILDDIR)
+
 DESTDIR?=
 BUILDDIR?=
 PREFIX?=/usr/local
@@ -51,11 +56,19 @@ $(LIBS) \
 TARGET_FOOT := deer.kernel.foot
 TARGET_GRUB := deer.kernel.grub
 
+# ugly stuff to link lgcc with ld
+CC_NAME=$(shell echo $(CC) | cut -d' ' -f1)
+CC_PATH=$(shell dirname $(shell which $(CC_NAME)))
+LGCC:=$(CC_PATH)/../lib/gcc/i686-elf/14.1.0/libgcc.a
+
 .PHONY: clean install-foot install-grub install-headers
 .SUFFIXES: .o .c .S
 
-$(BUILDDIR)/$(TARGET_FOOT): $(BUILDDIR)/kernel/kernel_entry.o $(BUILDDIR)/kernel/kernel.o
-	$(LD) -m elf_i386 -o $@ -Ttext 0x1000 $^ \
+$(BUILDDIR)/$(TARGET_FOOT): $(BUILDDIR)/kernel/kernel_entry.o $(BUILDDIR)/kernel/kernel.o $(OBJS)
+	@echo $(CC_NAME)
+	@echo $(CC_PATH)
+	@echo $(LGCC)
+	$(LD) -m elf_i386 -o $@ -Ttext 0x1000 $^ $(LIBC) $(LGCC) \
 		--entry=_kernel_start --oformat binary
 
 # ugly stuff, I hate myself
@@ -83,8 +96,8 @@ install-grub: install-headers $(BUILDDIR)/$(TARGET_GRUB)
 
 install-headers:
 	@mkdir -vp $(DESTDIR)$(INCLUDEDIR)
-	cp -R --preserve=timestamps include/. $(DESTDIR)$(INCLUDEDIR)/.
+	# cp -R --preserve=timestamps include/. $(DESTDIR)$(INCLUDEDIR)/.
+	cp -alf include/* $(DESTDIR)$(INCLUDEDIR)/
 
-.FORCE: ;
 
 -include $(OBJS:.o=.d)

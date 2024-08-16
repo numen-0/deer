@@ -1,4 +1,3 @@
-
 [bits 32]
 
 %define VIDEO_MEMORY    0xb8000

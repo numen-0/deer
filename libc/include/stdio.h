@@ -3,18 +3,18 @@
 
 #include <sys/cdefs.h>
 
-#define EOF (-1)
+#define	__need_size_t
+#define	__need_NULL
+#include <stddef.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#define EOF          (-1)
 
-int printf(const char* __restrict, ...);
+__BEGIN_DECLS
+
+int printf(const char* __restrict str, ...);
 int putchar(int);
-int puts(const char*);
+int puts(const char* str);
 
-#ifdef __cplusplus
-}
-#endif
+__END_DECLS
 
 #endif

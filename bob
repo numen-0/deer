@@ -9,6 +9,7 @@ export PATH="$BIN:$PATH"
 VERSION="0.0.0.0v"
 DEFAULT_HOST=i686-elf
 export BOOTLOADER="foot"
+# export BOOTLOADER="grub"
 
 SYSTEM_HEADER_PROJECTS="libc kernel"
 PROJECTS="bootloader libc kernel"
@@ -106,12 +107,18 @@ bob_build() {
 bob_iso() {
     bob_say "[bob:build:iso]";
     if [ "$BOOTLOADER" = "foot" ]; then
-        sectors=24
+        sectors=32
+
 
         cat "$BUILDDIR/bootloader/foot/foot_boot_loader.bin" \
             "$BUILDDIR/kernel/deer.kernel.foot" > deer.kernel
-        dd if=/dev/zero bs=1 count=$((512*sectors-$(stat -c%s "deer.kernel"))) \
-            >> deer.kernel
+
+        size=$(stat -c%s "deer.kernel")
+        padding=$((512 * sectors - size))
+        bob_say "[bob:build:iso]:info: iso size: ${size}B == $((size / 512 + 1)) sectors"
+        bob_say "[bob:build:iso]:info: added padding: ${padding}B == $((padding / 512)) sectors"
+        dd if=/dev/zero bs=1 count=$padding >> deer.kernel
+
         mkdir -p "$SYSROOT/boot"
         cp "deer.kernel" "$SYSROOT/boot/deer.kernel"
     elif [ "$BOOTLOADER" = "grub" ]; then

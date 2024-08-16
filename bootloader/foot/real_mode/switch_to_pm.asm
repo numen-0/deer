@@ -5,20 +5,21 @@ switch_to_pm:
     mov  eax, cr0
     or   eax, 0x1               ; 3. enable protected mode
     mov  cr0, eax
-    jmp  CODE_SEG:init_pm       ; 4. far jump, force to switch to pm
+    JMP  CODE_SEG:init_pm       ; 4. far jump, force to switch to pm
 
 [bits 32]
 init_pm:
-    mov ax, DATA_SEG            ; 5. update segment registers
-    mov ds, ax
-    mov ss, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
+    mov  ax, DATA_SEG            ; 5. update segment registers
+    mov  ds, ax
+    mov  ss, ax
+    mov  es, ax
+    mov  fs, ax
+    mov  gs, ax
 
 ; NOTE: foot stack base isn't the same as in grub, I'm sure it's not going to
 ; be a problem in the future (O_o).
-    mov ebp, STACK_BASE_RM      ; 6. setup stack
-    mov esp, ebp
+    mov  esp, STACK_BASE_RM      ; 6. setup stack
+    xor  ebp, ebp
 
-    call BEGIN_PM               ; 7. move back to mbr.asm
+    CALL BEGIN_PM               ; 7. move begin
+

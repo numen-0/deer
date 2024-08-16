@@ -4,3 +4,5 @@ sysroot
 build
 
 .clangd
+.todo
+.gitignore

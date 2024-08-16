@@ -1,7 +1,6 @@
 [bits 16]
 
 disk_load:      ; load DH sectors to ES:BX from drive DL; unpolite
-    pusha
     push dx
 
     mov  ah, 0x02 ; read mode
@@ -16,7 +15,6 @@ disk_load:      ; load DH sectors to ES:BX from drive DL; unpolite
     pop  dx             ; restore DX
     cmp  al, dh         ; if AL ( sectors read ) != DH ( sectors expected )
     JNE  .disk_sectors_error
-    popa
     RET
 .disk_error:
 ;    JMP  .disk_error_out

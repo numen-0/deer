@@ -12,21 +12,21 @@ gdt_code:   ; code segment descriptor
 ;   type: [code:1] [expand down:0] [writable:1] [accessed:0]        -> 1010b
 ;   2nd : [granularity:1] [32bit default:1] [64-bit seg:0] [AVL:0]  -> 1100b
     dw 0xffff    ; limit (seg. lenght)  - (bits 0-15)
-    dw 0x0       ; segment base         - (bits 0-15)
-    db 0x0       ; segment base         - (bits 16-23)
+    dw 0x00      ; segment base         - (bits 0-15)
+    db 0x00      ; segment base         - (bits 16-23)
     db 10011010b ; 1st + type flags     - (8 bits)
     db 11001111b ; 2nd flags + limit    - (4 bits) + (bits 16-19)
-    db 0x0       ; segment base, bits 24-31
+    db 0x00      ; segment base, bits 24-31
 
 gdt_data:   ; data segment descriptor
 ; Same as code segment except for the type flags [code:0]:
 ; type flags: [code:0] [expand down:0] [writable:1] [accessed:0] -> 0010b
     dw 0xffff    ; limit (seg. lenght)  - (bits 0-15)
-    dw 0x0       ; segment base         - (bits 0-15)
-    db 0x0       ; segment base         - (bits 16-23)
+    dw 0x00      ; segment base         - (bits 0-15)
+    db 0x00      ; segment base         - (bits 16-23)
     db 10010010b ; 1st + type flags     - (8 bits)
     db 11001111b ; 2nd flags + limit    - (4 bits) + (bits 16-19)
-    db 0x0       ; segment base, bits 24-31
+    db 0x00      ; segment base, bits 24-31
 gdt_end:
 
 ; GDT descriptor

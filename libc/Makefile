@@ -33,6 +33,7 @@ $(ARCH_FREEOBJS) \
 $(patsubst %.c,$(BUILDDIR)/%.o,$(wildcard stdio/*.c)) \
 $(patsubst %.c,$(BUILDDIR)/%.o,$(wildcard stdlib/*.c)) \
 $(patsubst %.c,$(BUILDDIR)/%.o,$(wildcard string/*.c)) \
+$(patsubst %.c,$(BUILDDIR)/%.o,$(wildcard ctype/*.c)) \
 
 HOSTEDOBJS=\
 $(ARCH_HOSTEDOBJS) \
@@ -80,7 +81,8 @@ install: install-headers install-libs
 
 install-headers:
 	mkdir -p $(DESTDIR)$(INCLUDEDIR)
-	cp -R --preserve=timestamps include/. $(DESTDIR)$(INCLUDEDIR)/.
+	# cp -R --preserve=timestamps include/. $(DESTDIR)$(INCLUDEDIR)/.
+	cp -alf --preserve=timestamps include/. $(DESTDIR)$(INCLUDEDIR)/.
 
 install-libs: $(BINARIES)
 	mkdir -p $(DESTDIR)$(LIBDIR)

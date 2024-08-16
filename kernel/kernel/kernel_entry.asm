@@ -1,7 +1,7 @@
 [bits 32]
 [extern kernel_main]
-global _kernel_main  ; Make sure this is the entry symbol
+global _kernel_start ; Make sure this is the entry symbol
 
-_kernel_main:
-    call kernel_main
-    jmp $
+_kernel_start:
+    CALL kernel_main
+    RET
