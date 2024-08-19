@@ -1,7 +1,9 @@
-#include <kernel/drivers/vga_screen.h>
-#include <kernel/drivers/timer.h>
+
+#include <kernel/asm_tools.h>
 #include <kernel/isr.h>
 #include <kernel/ports.h>
+#include <kernel/drivers/vga_screen.h>
+#include <kernel/drivers/timer.h>
 
 // NOTE: atomic stuff here in a future
 static volatile uint64_t tick = 0;
@@ -48,6 +50,6 @@ void sleep(uint32_t millis) {
     /* formula: targer = freq * millis / 1000 (millis) */
     uint64_t target = tick + ((uint64_t)millis * frequency) / 1000;
     while ( target != tick ) {
-        __asm__ __volatile__ ("hlt");
+        asm_halt();
     };
 }

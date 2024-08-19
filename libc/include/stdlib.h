@@ -4,14 +4,22 @@
 #include <sys/cdefs.h>
 
 // #define __need_wchar_t
-// #define	__need_size_t
+#define	__need_size_t
 #define	__need_NULL
 #include <stddef.h>
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
 
+// #define	RAND_MAX	2147483647
+
 __BEGIN_DECLS
+
+// typedef struct {
+//     int quot;			/* Quotient.  */
+//     int rem;			/* Remainder.  */
+// } div_t;
+
 
 // TODO
 // /* Converts the string pointed to floating-point number (type double). */
@@ -30,8 +38,17 @@ __BEGIN_DECLS
 // unsigned long int strtoul(const char *str, char **endptr, int base);
 
 // Causes an abnormal program termination
-__attribute__((__noreturn__))
-void abort(void);
+__attribute__((__noreturn__)) void abort(void);
+
+/* Deallocates previously allocated memory */
+void  free(void* ptr);
+/* Allocate SIZE bytes of memory. */
+void* malloc(size_t size);
+/* Allocate NITEMS elements of SIZE bytes each, all initialized to 0. */
+void* calloc(size_t nitems, size_t size);
+/* Re-allocate the previously allocated block of SIZE bytes long in PTR */
+void* realloc(void* ptr, size_t size);
+
 
 __END_DECLS
 

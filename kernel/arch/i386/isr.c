@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+#include <kernel/asm_tools.h>
 #include <kernel/isr.h>
 #include <kernel/idt.h>
 #include <kernel/drivers/keyboard.h>
@@ -45,7 +46,7 @@ void isr_install() {
     set_idt_gate(30, (uint32_t)isr30);
     set_idt_gate(31, (uint32_t)isr31);
 
-        // Remap the PIC
+    // Remap the PIC
     port_byte_out(0x20, 0x11);
     port_byte_out(0xA0, 0x11);
     port_byte_out(0x21, 0x20);
@@ -149,7 +150,7 @@ void irq_handler(registers_t* r) {
 }
 void irq_install() {
     /* Enable interruptions */
-    asm volatile("sti");
+    asm_sti();
     /* IRQ0: timer */
     init_timer(50); // T = 5 ms
     /* IRQ1: keyboard */
